@@ -1,11 +1,15 @@
 name: Docker Image CI
 
+
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
+env: 
+  IMAGE_NAME: nginx-demo
+  
 jobs:
 
   build:
@@ -17,4 +21,17 @@ jobs:
     - name: Build the Docker image
       run: |
         cd src
-        docker build . --file Dockerfile --tag nginx-demo$(date +%s)
+        docker build . -t ${{ secrets.AWS_ECR_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+    
+    - name: Login to ECR
+      id: ecr
+      uses: jwalton/gh-ecr-login@v1
+      with:
+        access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        region: eu-west-1
+
+    - name: Push to ECR
+      run: |
+        docker push ${{ secrets.AWS_ECR_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+         
